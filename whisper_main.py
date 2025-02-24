@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import whisper
 import tempfile
@@ -27,10 +28,13 @@ audio_file = st.file_uploader(
 if audio_file is not None:
     if st.button("音声文字起こしを実行する"):
         with st.spinner("音声文字起こしを実行中です..."):
-            # 一時ファイルとして保存
-            with tempfile.NamedTemporaryFile(delete=False) as temp_audio_file:
+            # 一時ファイルとして保存（大きなファイルでもメモリ効率を考慮）
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
                 temp_audio_file.write(audio_file.read())
                 temp_audio_path = temp_audio_file.name
+            
+            # Whisperモデルを遅延ロード（最初の実行時のみ）
+            model = whisper.load_model(model_size)
 
             # Whisperモデルを使って音声をテキストに変換
             result = model.transcribe(temp_audio_path)
@@ -52,3 +56,7 @@ if audio_file is not None:
                     file_name="transcription.txt",
                     mime="text/plain"
                 )
+
+            # 一時ファイルを削除
+            os.remove(temp_audio_path)
+            os.remove(text_file_path)
